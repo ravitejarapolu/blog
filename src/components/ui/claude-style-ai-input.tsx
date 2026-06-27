@@ -229,6 +229,42 @@ const getFileExtension = (filename: string): string => {
   return extension.length > 8 ? `${extension.substring(0, 8)}...` : extension;
 };
 
+function renderHighlightedSuggestion(
+  text: string,
+  highlight: string,
+  isOpenAI: boolean,
+) {
+  const trimmedHighlight = highlight.trim();
+  const mutedClassName = isOpenAI ? 'text-[#b7b7b7]' : 'text-[#cfc8bd]';
+  const highlightClassName = isOpenAI
+    ? 'font-medium text-[#f4f4f4]'
+    : 'font-medium text-[#f4efe7]';
+
+  if (!trimmedHighlight) {
+    return <span className={mutedClassName}>{text}</span>;
+  }
+
+  const textLower = text.toLowerCase();
+  const highlightLower = trimmedHighlight.toLowerCase();
+  const index = textLower.indexOf(highlightLower);
+
+  if (index === -1) {
+    return <span className={mutedClassName}>{text}</span>;
+  }
+
+  const before = text.slice(0, index);
+  const match = text.slice(index, index + trimmedHighlight.length);
+  const after = text.slice(index + trimmedHighlight.length);
+
+  return (
+    <>
+      {before && <span className={mutedClassName}>{before}</span>}
+      <span className={highlightClassName}>{match}</span>
+      {after && <span className={mutedClassName}>{after}</span>}
+    </>
+  );
+}
+
 const FilePreviewCard: React.FC<{
   file: FileWithPreview;
   onRemove: (id: string) => void;
@@ -871,10 +907,10 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
               key={suggestion.id}
               type="button"
               className={cn(
-                'group flex w-full items-center gap-3 px-4 py-1 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+                'group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
                 isOpenAI
-                  ? 'text-[#b7b7b7] hover:text-[#f4f4f4] focus-visible:outline-[#4d9cff]'
-                  : 'text-[#cfc8bd] hover:text-[#f4efe7] focus-visible:outline-[#d97745]',
+                  ? 'hover:bg-white/10 focus-visible:outline-[#4d9cff]'
+                  : 'hover:bg-[#d97745]/10 focus-visible:outline-[#d97745]',
               )}
               onClick={() => {
                 setMessage(suggestion.text);
@@ -899,13 +935,13 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
               <span className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    'block whitespace-normal break-words',
+                    'block whitespace-pre-wrap break-words',
                     isOpenAI
                       ? 'text-sm font-semibold leading-snug tracking-normal'
                       : 'text-sm font-semibold leading-snug',
                   )}
                 >
-                  {suggestion.text}
+                  {renderHighlightedSuggestion(suggestion.text, message, isOpenAI)}
                 </span>
               </span>
             </button>
