@@ -1,9 +1,17 @@
+import type { ChatMode } from './types';
 
+interface Props {
+  mode: ChatMode;
+}
 
-export default function ChatHeader() {
+export default function ChatHeader({ mode }: Props) {
+  const isOpenAI = mode === 'openai';
+
   return (
-    <header className="py-4 sm:py-6 text-center bg-white dark:bg-gray-900 rounded-t-xl">
-      <h1 className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">Ask me anything about rAvI</h1>
+    <header className="rounded-t-xl bg-inherit py-4 text-center sm:py-6">
+      <h1 className={`text-2xl font-bold sm:text-3xl ${isOpenAI ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-200'}`}>
+        Ask me anything about rAvI
+      </h1>
     </header>
   );
 }
