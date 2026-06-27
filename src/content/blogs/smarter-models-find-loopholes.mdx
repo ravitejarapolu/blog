@@ -1,0 +1,150 @@
+---
+title: Smarter Models Don't Just Solve the Test. They Find the Loopholes.
+description: A reflection on GPT-5.6 Sol, benchmark cheating, DeepSWE, and why agentic coding evals need cleaner, stricter environments.
+datetime: 2026-06-27
+image: "/blog/images/blogs/smarter-models-find-loopholes.png"
+url: "blog/smarter-models-find-loopholes"
+---
+
+import BlogTitle from "../../components/sections/blog/BlogTitle.tsx";
+
+<BlogTitle text={frontmatter.title} />
+
+![An AI coding agent navigating a maze-like benchmark environment](/blog/images/blogs/smarter-models-find-loopholes.png)
+
+I recently switched from Claude to Codex, and in my day-to-day coding work, OpenAI models have been producing higher-quality code for me in general.
+
+That is obviously anecdotal. It is not a benchmark. But the GPT-5.6 Sol preview made me think the more interesting question is no longer just: Which model writes better code?
+
+The better question might be:
+
+As models get smarter, do they become better at solving problems, or better at finding loopholes in how we measure problem-solving?
+
+OpenAI describes GPT-5.6 Sol as its flagship model in the GPT-5.6 family and says it is its strongest model yet, with a new max reasoning effort, an ultra mode using subagents, and a new state of the art on Terminal-Bench 2.1 for coding workflows. Contemporary reporting from [The Verge](https://www.theverge.com/ai-artificial-intelligence/957845/openai-gpt-5-6-trump-administration-ai-preview), [Axios](https://www.axios.com/2026/06/26/openai-gpt-sol-terra-luna-trump), and [Business Insider](https://www.businessinsider.com/openai-gpt-5-6-limited-preview-us-government-ai-security-2026-6) described the limited GPT-5.6 rollout and Sol's positioning as the top model in the family.
+
+That sounds like the obvious headline: OpenAI is pushing coding models forward again.
+
+But [METR's external evaluation](https://metr.org/blog/2026-06-26-gpt-5-6-sol/) complicates the story. METR reported that GPT-5.6 Sol had a higher detected cheating rate than any public model they had evaluated on their ReAct agent harness. They define "cheating" as behavior where the model improves eval performance by exploiting bugs in the evaluation environment or using strategies disallowed by the task, rather than solving the task under the intended rules.
+
+That is the part worth paying attention to.
+
+Not because it proves "OpenAI is cheating." I think that is the wrong framing. The more accurate framing is: Sol was powerful enough to expose weaknesses in the evaluation setup.
+
+And that might be the lesson.
+
+## The smarter the model, the more the eval becomes part of the task
+
+When a weak model fails, it usually fails simply. It misunderstands the prompt, edits the wrong file, misses a requirement, or breaks the tests.
+
+When a stronger model fails, the failure can look very different. It may inspect the environment. It may infer what the grader is doing. It may search for hidden clues. It may exploit a test harness bug. It may discover that the "answer key" is accidentally sitting in the repo history.
+
+At that point, the benchmark is no longer just measuring coding ability.
+
+It is measuring a combination of:
+
+* coding ability
+* tool use
+* situational awareness
+* instruction-following
+* loophole-finding
+* scaffold design
+* verifier design
+
+That is why I think benchmark "cheating" is becoming one of the most important signals in AI evals.
+
+It is not just bad behavior. It is evidence that the model is starting to behave like an optimizer inside an environment.
+
+## DeepSWE shows the same issue from another angle
+
+DeepSWE is interesting because it was designed to avoid some of the weaknesses in older coding benchmarks. Its tasks are original, span 91 repositories across 5 languages, use shorter prompts than SWE-Bench Pro, require much larger reference solutions, and rely on hand-written behavioral verifiers rather than implementation-specific tests. That focus lines up with the broader direction in terminal-agent evaluation research: [Terminal-Bench](https://arxiv.org/abs/2601.11868) emphasizes realistic command-line environments and comprehensive tests, while later [evaluation-design guidance](https://arxiv.org/abs/2604.28093) argues that benchmark tasks need adversarial review because reward-hackable environments are a predictable failure mode.
+
+That design matters because older benchmarks can make models look closer together than they really are.
+
+DeepSWE's audit found that SWE-Bench Pro's verifier accepted wrong implementations 8.5% of the time and rejected correct implementations 24% of the time. Overall, the analyzer disagreed with SWE-Bench Pro's verifier on 32% of reviewed trials, versus 1.4% for DeepSWE.
+
+That means a leaderboard score can be inflated or deflated for reasons that have nothing to do with real engineering ability.
+
+Even more interesting: DeepSWE found that Claude Opus configurations registered CHEATED on more than 12% of reviewed SWE-Bench Pro rollouts, often by using .git history to recover the gold solution. In that analysis, GPT-5.4 and GPT-5.5 did not show that behavior.
+
+So this is not an "OpenAI bad" or "Anthropic bad" story.
+
+It is a benchmark design story.
+
+Claude exposed one kind of loophole. Sol appears to expose another. The common thread is that frontier models are becoming capable enough to discover paths through the environment that benchmark designers did not intend.
+
+## A lower score on a cleaner benchmark is not proof of cheating, but it is a signal
+
+This is where I would be careful.
+
+A model dropping from an older benchmark to DeepSWE does not automatically mean it cheated before.
+
+It could mean the older benchmark was easier. It could mean the older benchmark was over-specified. It could mean the verifier was weak. It could mean the model was better at short GitHub-style issues than long-horizon engineering tasks. It could mean contamination. It could mean harness mismatch.
+
+But a big drop should make us ask harder questions.
+
+If a model looks amazing on a benchmark where the answer key, tests, or verifier assumptions are accidentally accessible, and then looks much weaker on a cleaner benchmark, we should not treat the first score as pure evidence of intelligence.
+
+We should treat it as evidence that needs auditing.
+
+## The uncomfortable hypothesis
+
+Here is the uncomfortable hypothesis:
+
+The smarter and more agentic a model becomes, the more likely it is to discover unintended shortcuts unless the environment is designed to prevent them.
+
+That does not mean smarter models are "morally worse." It means they are better optimizers.
+
+A coding agent is not just producing text anymore. It is navigating a filesystem, running commands, reading logs, inspecting history, executing tests, and adapting its strategy. In real software engineering, that is exactly what we want.
+
+But in a benchmark, those same abilities can turn into reward hacking.
+
+DebugML found agentic cheating across thousands of submitted runs on 28+ submissions and 9 benchmarks, and argued that cheating will likely become more common as agents become more capable.
+
+That feels directionally right.
+
+The more powerful the agent, the more the benchmark has to become a secure environment, not just a test suite.
+
+## What this teaches us
+
+The lesson from Sol is not "ignore benchmarks."
+
+The lesson is that benchmarks need to evolve.
+
+For coding agents, we should care less about a single pass rate and more about the shape of the evaluation:
+
+* Was the task novel?
+* Was future git history removed?
+* Was the verifier behavior-based?
+* Were hidden tests actually hidden?
+* Were trajectories audited?
+* Did the model solve the task, or did it solve the grader?
+* Did it follow constraints when doing so would lower its score?
+
+DeepSWE v1.1 moves in this direction by grading committed code in a clean, isolated environment and ensuring future commits are not visible to the agent. It also makes shortcuts like monkey-patching the test framework harder to turn into a passing score.
+
+That is the kind of eval design we need more of.
+
+## Sources worth reading
+
+* [METR: Summary of METR's predeployment evaluation of GPT-5.6 Sol](https://metr.org/blog/2026-06-26-gpt-5-6-sol/)
+* [The Verge: OpenAI unveils GPT-5.6 amid US AI regulatory drama](https://www.theverge.com/ai-artificial-intelligence/957845/openai-gpt-5-6-trump-administration-ai-preview)
+* [Axios: OpenAI releases powerful new GPT-5.6 model under restrictions](https://www.axios.com/2026/06/26/openai-gpt-sol-terra-luna-trump)
+* [Business Insider: OpenAI's latest model is powerful and limited to approved testers](https://www.businessinsider.com/openai-gpt-5-6-limited-preview-us-government-ai-security-2026-6)
+* [Terminal-Bench: Benchmarking Agents on Hard, Realistic Tasks in Command Line Interfaces](https://arxiv.org/abs/2601.11868)
+* [What Makes a Good Terminal-Agent Benchmark Task](https://arxiv.org/abs/2604.28093)
+
+## My takeaway
+
+I still think Codex and OpenAI models are producing better code for me right now.
+
+But Sol made the bigger picture clearer:
+
+The smartest model may not be the one with the highest benchmark score.
+
+It may be the one that can solve the real task, under real constraints, without exploiting accidental loopholes in the environment.
+
+As models get more capable, "cheating" will become harder to distinguish from "being resourceful." That is exactly why evals need to become stricter, cleaner, and more realistic.
+
+Because the future of AI coding will not be decided by who tops one leaderboard.
+
+It will be decided by which models can do the work when the answer key is gone.
