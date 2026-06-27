@@ -538,6 +538,7 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
   const [pastedContent, setPastedContent] = useState<PastedContent[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
+  const [isTextareaFocused, setIsTextareaFocused] = useState(false);
   const [selectedModel, setSelectedModel] = useState(
     defaultModel || models[0]?.id || '',
   );
@@ -812,6 +813,7 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
     visibleSuggestions.length > 0 &&
     files.length === 0 &&
     pastedContent.length === 0 &&
+    !isTextareaFocused &&
     !isModelSelectorOpen;
 
   return (
@@ -893,7 +895,7 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
 
       <div
         className={cn(
-          'items-end gap-2 min-h-[150px] flex flex-col rounded-xl border shadow-lg',
+          'items-end gap-2 min-h-[150px] flex flex-col overflow-hidden rounded-xl border shadow-lg',
           isOpenAI
             ? 'border-white/10 bg-[#181818] shadow-black/30'
             : 'border-zinc-700 bg-[#30302E]',
@@ -905,10 +907,12 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
           onChange={(event) => setMessage(event.target.value)}
           onPaste={handlePaste}
           onKeyDown={handleKeyDown}
+          onFocus={() => setIsTextareaFocused(true)}
+          onBlur={() => setIsTextareaFocused(false)}
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            'flex-1 min-h-[100px] w-full p-4 focus-within:border-none focus:outline-none focus:border-none border-none outline-none focus-within:ring-0 focus-within:ring-offset-0 focus-within:outline-none max-h-[120px] resize-none bg-transparent shadow-none focus-visible:ring-0 text-sm sm:text-base custom-scrollbar',
+            'flex-1 min-h-[100px] w-full p-4 focus-within:border-none focus:outline-none focus:border-none border-none outline-none focus-within:ring-0 focus-within:ring-offset-0 focus-within:outline-none max-h-[120px] resize-none bg-transparent text-base leading-[26px] shadow-none focus-visible:ring-0 custom-scrollbar',
             isOpenAI
               ? 'text-[#f4f4f4] placeholder:text-[#8e8e8e]'
               : 'text-zinc-100 placeholder:text-zinc-500',

@@ -77,7 +77,6 @@ export default function ChatContainer() {
   const [interfaceTheme, setInterfaceTheme] = useState<ChatInterfaceTheme>('anthropic');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
-  const isNearBottomRef = useRef(true);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
   useEffect(() => {
@@ -93,57 +92,11 @@ export default function ChatContainer() {
     function handleScroll() {
       // If scrolled to bottom (or very close), hide button
       const isAtBottom = chatAreaElement.scrollHeight - chatAreaElement.scrollTop - chatAreaElement.clientHeight < 48;
-      isNearBottomRef.current = isAtBottom;
       setShowScrollToBottom(!isAtBottom);
     }
     chatAreaElement.addEventListener('scroll', handleScroll);
     handleScroll();
     return () => chatAreaElement.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!viewport) return;
-
-    let frame = 0;
-
-    function scrollToBottomIfPinned() {
-      const chatArea = chatAreaRef.current;
-      if (chatArea && isNearBottomRef.current) {
-        chatArea.scrollTo({ top: chatArea.scrollHeight });
-      }
-    }
-
-    function syncKeyboardInset() {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const inset = Math.max(
-          0,
-          window.innerHeight - viewport.height - viewport.offsetTop,
-        );
-
-        document.documentElement.style.setProperty(
-          '--chat-keyboard-inset',
-          `${Math.round(inset)}px`,
-        );
-        scrollToBottomIfPinned();
-      });
-    }
-
-    syncKeyboardInset();
-    viewport.addEventListener('resize', syncKeyboardInset);
-    viewport.addEventListener('scroll', syncKeyboardInset);
-    window.addEventListener('resize', syncKeyboardInset);
-    window.addEventListener('orientationchange', syncKeyboardInset);
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      viewport.removeEventListener('resize', syncKeyboardInset);
-      viewport.removeEventListener('scroll', syncKeyboardInset);
-      window.removeEventListener('resize', syncKeyboardInset);
-      window.removeEventListener('orientationchange', syncKeyboardInset);
-      document.documentElement.style.removeProperty('--chat-keyboard-inset');
-    };
   }, []);
 
   useEffect(() => {
@@ -215,12 +168,12 @@ export default function ChatContainer() {
 
   const isOpenAI = interfaceTheme === 'openai';
   const rootClassName = isOpenAI
-    ? 'relative flex min-h-dvh w-screen flex-col overflow-hidden bg-black text-[#f4f4f4]'
-    : 'font-anthropic relative flex min-h-dvh w-screen flex-col overflow-hidden bg-[#1f1f1d] text-[#f4efe7]';
-  const mainClassName = 'mx-auto flex min-h-dvh w-full max-w-5xl flex-1 flex-col px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:px-6';
-  const chatAreaClassName = 'relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-1 pb-[calc(var(--chat-keyboard-inset,0px)+1rem)] pt-4 sm:px-5';
-  const sectionClassName = 'flex min-h-0 flex-1 flex-col';
-  const composerClassName = 'mx-auto w-full max-w-3xl pb-1 transition-[transform] duration-100 ease-out will-change-transform';
+    ? 'relative flex min-h-dvh w-full max-w-full flex-col overflow-hidden bg-black text-[#f4f4f4]'
+    : 'font-anthropic relative flex min-h-dvh w-full max-w-full flex-col overflow-hidden bg-[#1f1f1d] text-[#f4efe7]';
+  const mainClassName = 'mx-auto flex min-h-dvh w-full max-w-5xl flex-1 flex-col overflow-hidden px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:px-6';
+  const chatAreaClassName = 'relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden px-1 py-4 sm:px-5';
+  const sectionClassName = 'flex min-h-0 flex-1 flex-col overflow-hidden';
+  const composerClassName = 'mx-auto w-full max-w-3xl min-w-0 pb-1';
 
 
 
@@ -261,12 +214,7 @@ export default function ChatContainer() {
             {loading && <LoadingBubble interfaceTheme={interfaceTheme} />}
           </div>
 
-          <div
-            className={composerClassName}
-            style={{
-              transform: 'translate3d(0, calc(var(--chat-keyboard-inset, 0px) * -1), 0)',
-            }}
-          >
+          <div className={composerClassName}>
             <ChatInput
               onSend={handleSend}
               interfaceTheme={interfaceTheme}
