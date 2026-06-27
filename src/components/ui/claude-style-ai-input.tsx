@@ -1,7 +1,7 @@
 "use client";
 
 import type React from 'react';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import {
   Plus,
   SlidersHorizontal,
@@ -546,18 +546,18 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const maxHeight =
-        Number.parseInt(getComputedStyle(textareaRef.current).maxHeight, 10) ||
-        120;
-      textareaRef.current.style.height = `${Math.min(
-        textareaRef.current.scrollHeight,
-        maxHeight,
-      )}px`;
-    }
-  }, [message]);
+  const adjustTextareaHeight = useCallback((textarea = textareaRef.current) => {
+    if (!textarea) return;
+
+    textarea.style.height = 'auto';
+    const maxHeight =
+      Number.parseInt(getComputedStyle(textarea).maxHeight, 10) || 160;
+    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+  }, []);
+
+  useLayoutEffect(() => {
+    adjustTextareaHeight();
+  }, [adjustTextareaHeight, message]);
 
   const handleFileSelect = useCallback(
     (selectedFiles: FileList | null) => {
@@ -793,6 +793,26 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
     [handleSend],
   );
 
+  const handleMessageChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setMessage(event.target.value);
+      adjustTextareaHeight(event.target);
+    },
+    [adjustTextareaHeight],
+  );
+
+  const handleComposerClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (disabled) return;
+
+      const target = event.target as HTMLElement;
+      if (target.closest('button, input, textarea, [role="button"]')) return;
+
+      textareaRef.current?.focus();
+    },
+    [disabled],
+  );
+
   const hasContent =
     message.trim() || files.length > 0 || pastedContent.length > 0;
   const canSend =
@@ -818,7 +838,7 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div
-      className="relative w-full max-w-2xl mx-auto"
+      className="relative mx-auto w-full max-w-2xl min-w-0"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -894,8 +914,9 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
       )}
 
       <div
+        onClick={handleComposerClick}
         className={cn(
-          'items-end gap-2 min-h-[150px] flex flex-col overflow-hidden rounded-xl border shadow-lg',
+          'flex min-h-[104px] cursor-text flex-col items-end gap-2 overflow-hidden rounded-[28px] border p-2 shadow-lg [contain:inline-size]',
           isOpenAI
             ? 'border-white/10 bg-[#181818] shadow-black/30'
             : 'border-zinc-700 bg-[#30302E]',
@@ -904,7 +925,7 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
         <textarea
           ref={textareaRef}
           value={message}
-          onChange={(event) => setMessage(event.target.value)}
+          onChange={handleMessageChange}
           onPaste={handlePaste}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsTextareaFocused(true)}
@@ -912,14 +933,14 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            'flex-1 min-h-[100px] w-full p-4 focus-within:border-none focus:outline-none focus:border-none border-none outline-none focus-within:ring-0 focus-within:ring-offset-0 focus-within:outline-none max-h-[120px] resize-none bg-transparent text-base leading-[26px] shadow-none focus-visible:ring-0 custom-scrollbar',
+            'min-h-[44px] w-full max-h-[160px] resize-none border-none bg-transparent px-3 py-2 text-base leading-[26px] shadow-none outline-none focus:border-none focus:outline-none focus-visible:ring-0 focus-within:border-none focus-within:outline-none focus-within:ring-0 focus-within:ring-offset-0 custom-scrollbar',
             isOpenAI
               ? 'text-[#f4f4f4] placeholder:text-[#8e8e8e]'
               : 'text-zinc-100 placeholder:text-zinc-500',
           )}
           rows={1}
         />
-        <div className="flex items-center gap-2 justify-between w-full px-3 pb-1.5">
+        <div className="flex w-full items-center justify-between gap-2 px-1 pb-0.5">
           <div className="flex items-center gap-2">
             <Button
               size="icon"
