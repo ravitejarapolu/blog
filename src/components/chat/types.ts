@@ -1,4 +1,5 @@
 export type ChatCategory = 'Basic' | 'Work' | 'Skills' | 'Hobbies';
+export type ChatMode = 'openai' | 'anthropic';
 
 export interface ChatPrompt {
   id: string;

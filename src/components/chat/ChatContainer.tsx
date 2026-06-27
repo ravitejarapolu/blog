@@ -5,7 +5,7 @@ import ChatPromptList from './ChatPromptList';
 import ChatInput from './ChatInput';
 import ChatBubble from './ChatBubble';
 import LoadingBubble from './LoadingBubble';
-import type { ChatCategory, ChatPrompt, ChatMessage } from './types';
+import type { ChatCategory, ChatPrompt, ChatMessage, ChatMode } from './types';
 
 const promptData: Record<ChatCategory, ChatPrompt[]> = {
   "Basic": [
@@ -40,6 +40,7 @@ const promptData: Record<ChatCategory, ChatPrompt[]> = {
 
 export default function ChatContainer() {
   const [category, setCategory] = useState<ChatCategory>('Basic');
+  const [mode, setMode] = useState<ChatMode>('anthropic');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCategories, setShowCategories] = useState(true);
@@ -127,12 +128,12 @@ export default function ChatContainer() {
 
 
   return (
-    <div className="relative min-h-screen w-full bg-white dark:bg-gray-900 flex flex-col items-center px-2 sm:px-0">
+    <div className={`relative min-h-screen w-full flex flex-col items-center px-2 sm:px-0 ${mode === 'openai' ? 'bg-white text-gray-950 dark:bg-gray-950 dark:text-gray-50' : 'bg-stone-50 text-stone-950 dark:bg-stone-950 dark:text-stone-50'}`}>
       <div className="w-full max-w-4xl mx-auto bg-inherit rounded-xl shadow-lg mt-4 sm:mt-10 mb-24 sm:mb-28 px-2 sm:px-6 pt-2 pb-8 flex flex-col">
-        <ChatHeader />
+        <ChatHeader mode={mode} />
         {showCategories && (
           <>
-            <ChatCategorySelector selected={category} onSelect={setCategory} />
+            <ChatCategorySelector selected={category} mode={mode} onSelect={setCategory} />
             <ChatPromptList prompts={promptData[category]} onSelect={handlePromptSelect} />
           </>
         )}
@@ -162,7 +163,7 @@ export default function ChatContainer() {
       {/* Sticky ChatInput at bottom of viewport */}
       <div className="fixed bottom-0 left-0 w-full z-40 bg-inherit border-t border-gray-200 dark:border-gray-800 px-2 sm:px-0 flex justify-center">
         <div className="w-full max-w-xl">
-          <ChatInput onSend={handleSend} />
+          <ChatInput mode={mode} onModeChange={setMode} onSend={handleSend} />
         </div>
       </div>
     </div>
