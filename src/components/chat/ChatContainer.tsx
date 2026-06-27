@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import ChatInput from './ChatInput';
 import ChatBubble from './ChatBubble';
 import LoadingBubble from './LoadingBubble';
@@ -77,13 +77,53 @@ export default function ChatContainer() {
   const [interfaceTheme, setInterfaceTheme] = useState<ChatInterfaceTheme>('anthropic');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
+  const chatContentRef = useRef<HTMLDivElement>(null);
+  const shouldStickToBottomRef = useRef(true);
+  const scrollFrameRef = useRef<number | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
-  useEffect(() => {
-    if (messages.length > 1 && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const chatArea = chatAreaRef.current;
+    if (!chatArea) return;
+
+    if (scrollFrameRef.current) {
+      window.cancelAnimationFrame(scrollFrameRef.current);
     }
-  }, [messages]);
+
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      chatArea.scrollTo({ top: chatArea.scrollHeight, behavior });
+      scrollFrameRef.current = null;
+    });
+  }, []);
+
+  useEffect(() => {
+    if ((messages.length > 0 || loading) && shouldStickToBottomRef.current) {
+      scrollToBottom(messages.length <= 1 ? 'auto' : 'smooth');
+    }
+  }, [loading, messages.length, scrollToBottom]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollFrameRef.current) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const chatContent = chatContentRef.current;
+    if (!chatContent || typeof ResizeObserver === 'undefined') return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (shouldStickToBottomRef.current) {
+        scrollToBottom('smooth');
+      }
+    });
+
+    resizeObserver.observe(chatContent);
+
+    return () => resizeObserver.disconnect();
+  }, [scrollToBottom]);
 
   useEffect(() => {
     const chatArea = chatAreaRef.current;
@@ -92,6 +132,7 @@ export default function ChatContainer() {
     function handleScroll() {
       // If scrolled to bottom (or very close), hide button
       const isAtBottom = chatAreaElement.scrollHeight - chatAreaElement.scrollTop - chatAreaElement.clientHeight < 48;
+      shouldStickToBottomRef.current = isAtBottom;
       setShowScrollToBottom(!isAtBottom);
     }
     chatAreaElement.addEventListener('scroll', handleScroll);
@@ -119,13 +160,12 @@ export default function ChatContainer() {
   }, []);
 
   const handleScrollToBottom = () => {
-    const chatArea = chatAreaRef.current;
-    if (chatArea) {
-      chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
-    }
+    shouldStickToBottomRef.current = true;
+    scrollToBottom('smooth');
   };
 
   function handleSend(message: string) {
+    shouldStickToBottomRef.current = true;
     setMessages(msgs => [
       ...msgs,
       { id: `user-${Date.now()}`, sender: 'user', content: message },
@@ -171,7 +211,8 @@ export default function ChatContainer() {
     ? 'relative flex min-h-dvh w-full max-w-full flex-col overflow-hidden bg-black text-[#f4f4f4]'
     : 'font-anthropic relative flex min-h-dvh w-full max-w-full flex-col overflow-hidden bg-[#1f1f1d] text-[#f4efe7]';
   const mainClassName = 'mx-auto flex min-h-dvh w-full max-w-5xl flex-1 flex-col overflow-hidden px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:px-6';
-  const chatAreaClassName = 'relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden px-1 py-4 sm:px-5';
+  const chatAreaClassName = 'relative flex min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 py-4 sm:px-5';
+  const chatContentClassName = 'flex min-h-full w-full flex-col gap-2';
   const sectionClassName = 'flex min-h-0 flex-1 flex-col overflow-hidden';
   const composerClassName = 'mx-auto w-full max-w-3xl min-w-0 pb-1';
 
@@ -184,34 +225,42 @@ export default function ChatContainer() {
           <div
             ref={chatAreaRef}
             className={chatAreaClassName}
-            style={{ scrollBehavior: 'smooth' }}
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions text"
           >
-            {messages.length === 0 && !loading && (
-              <div className="flex flex-1 items-center justify-center py-8">
-                <div className="text-center">
-                  <div className={isOpenAI ? 'mx-auto mb-5 flex h-14 w-14 items-center justify-center text-[#f4f4f4]' : 'mx-auto mb-5 flex h-14 w-14 items-center justify-center text-[#d97745]'}>
-                    {isOpenAI ? <OpenAILogo /> : <ClaudeBurst />}
+            <div ref={chatContentRef} className={chatContentClassName}>
+              {messages.length === 0 && !loading && (
+                <div className="flex flex-1 items-center justify-center py-8">
+                  <div className="text-center">
+                    <div className={isOpenAI ? 'mx-auto mb-5 flex h-14 w-14 items-center justify-center text-[#f4f4f4]' : 'mx-auto mb-5 flex h-14 w-14 items-center justify-center text-[#d97745]'}>
+                      {isOpenAI ? <OpenAILogo /> : <ClaudeBurst />}
+                    </div>
+                    <p className={
+                      isOpenAI
+                        ? 'text-[2rem] font-semibold leading-tight text-[#f4f4f4] sm:text-5xl'
+                        : 'text-[2rem] font-semibold leading-tight text-[#d7d2c8] sm:text-5xl'
+                    }>
+                      {emptyStatePhrases[emptyPhraseIndex]}
+                    </p>
                   </div>
-                  <p className={
-                    isOpenAI
-                      ? 'text-[2rem] font-semibold leading-tight text-[#f4f4f4] sm:text-5xl'
-                      : 'text-[2rem] font-semibold leading-tight text-[#d7d2c8] sm:text-5xl'
-                  }>
-                    {emptyStatePhrases[emptyPhraseIndex]}
-                  </p>
                 </div>
-              </div>
-            )}
-            {messages.map((msg) => (
-              <ChatBubble
-                key={msg.id}
-                sender={msg.sender}
-                content={msg.content}
-                interfaceTheme={interfaceTheme}
+              )}
+              {messages.map((msg) => (
+                <ChatBubble
+                  key={msg.id}
+                  sender={msg.sender}
+                  content={msg.content}
+                  interfaceTheme={interfaceTheme}
+                />
+              ))}
+              {loading && <LoadingBubble interfaceTheme={interfaceTheme} />}
+              <div
+                ref={messagesEndRef}
+                className="h-px w-full shrink-0 scroll-mt-4"
+                aria-hidden="true"
               />
-            ))}
-            <div ref={messagesEndRef} />
-            {loading && <LoadingBubble interfaceTheme={interfaceTheme} />}
+            </div>
           </div>
 
           <div className={composerClassName}>
