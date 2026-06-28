@@ -1,6 +1,6 @@
 ---
 import PostHog from "../components/common/PostHog.astro";
-import QuickBall from "../components/QuickBall";
+import SiteNav from "../components/SiteNav";
 
 import "../styles/index.css";
 import { ClientRouter, fade } from "astro:transitions";
@@ -44,6 +44,7 @@ const { title } = Astro.props;
     <style>
       html {
         scroll-behavior: smooth;
+        scroll-padding-top: 6rem;
       }
 
       body {
@@ -56,10 +57,9 @@ const { title } = Astro.props;
   <body
     class="h-full flex flex-col overflow-x-hidden bg-default text-default text-base"
   >
-    <section class="flex-grow" transition:animate={fade({ duration: "0.4s" })}>
+    <SiteNav client:load />
+    <section class="flex-grow pt-20" transition:animate={fade({ duration: "0.4s" })}>
       <slot />
     </section>
-
-    <QuickBall client:load />
   </body>
 </html>

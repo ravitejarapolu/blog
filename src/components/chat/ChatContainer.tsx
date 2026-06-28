@@ -210,7 +210,7 @@ export default function ChatContainer() {
   const rootClassName = isOpenAI
     ? 'relative flex min-h-dvh w-full max-w-full flex-col overflow-hidden bg-black text-[#f4f4f4]'
     : 'font-anthropic relative flex min-h-dvh w-full max-w-full flex-col overflow-hidden bg-[#1f1f1d] text-[#f4efe7]';
-  const mainClassName = 'mx-auto flex min-h-dvh w-full max-w-5xl flex-1 flex-col overflow-hidden px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:px-6';
+  const mainClassName = 'mx-auto flex min-h-dvh w-full max-w-5xl flex-1 flex-col overflow-hidden px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[calc(5rem+env(safe-area-inset-top))] sm:px-6';
   const chatAreaClassName = 'relative flex min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 py-4 sm:px-5';
   const chatContentClassName = 'flex min-h-full w-full flex-col gap-2';
   const sectionClassName = 'flex min-h-0 flex-1 flex-col overflow-hidden';
