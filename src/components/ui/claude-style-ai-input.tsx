@@ -418,10 +418,13 @@ const PastedContentCard: React.FC<{
 };
 
 const OPENAI_EFFORTS_BY_MODEL: Record<string, string[]> = {
+  '5.6-sol': ['Light', 'Medium', 'High', 'Extra High', 'Ultra'],
+  '5.6-terra': ['Light', 'Medium', 'High', 'Extra High', 'Ultra'],
+  '5.6-luna': ['Light', 'Medium', 'High', 'Extra High', 'Ultra'],
   '5.5': ['Instant', 'Medium', 'High', 'Extra High', 'Pro'],
   '5.4': ['Instant', 'Medium', 'High'],
-  '5.3': ['Instant'],
-  o3: ['Medium'],
+  '5.4-mini': ['Instant', 'Medium'],
+  '5.3-codex-spark': ['Instant'],
 };
 
 const ModelSelectorDropdown: React.FC<{
@@ -449,8 +452,12 @@ const ModelSelectorDropdown: React.FC<{
   const [anthropicPanel, setAnthropicPanel] = useState<'effort' | null>(null);
   const [anthropicEffort, setAnthropicEffort] = useState<'Low' | 'Medium' | 'High' | 'Max'>('Low');
   const [isThinkingEnabled, setIsThinkingEnabled] = useState(false);
-  const [openAIEffort, setOpenAIEffort] = useState('Instant');
-  const [isOpenAIModelPanelOpen, setIsOpenAIModelPanelOpen] = useState(false);
+  const [openAIEffort, setOpenAIEffort] = useState(
+    () => OPENAI_EFFORTS_BY_MODEL[selectedModel]?.[0] || 'Light',
+  );
+  const [isOpenAIAdvancedOpen, setIsOpenAIAdvancedOpen] = useState(false);
+  const [openAIAdvancedPanel, setOpenAIAdvancedPanel] = useState<'model' | 'effort' | 'speed' | null>(null);
+  const [openAISpeed, setOpenAISpeed] = useState<'Standard' | 'Fast'>('Standard');
   const isOpenAI = variant === 'openai';
   const isWise = variant === 'wise';
   const isSiteDark = siteTheme === 'dark';
@@ -468,7 +475,8 @@ const ModelSelectorDropdown: React.FC<{
       if (!nextIsOpen) {
         setMenuStyle(null);
         setAnthropicPanel(null);
-        setIsOpenAIModelPanelOpen(false);
+        setIsOpenAIAdvancedOpen(false);
+        setOpenAIAdvancedPanel(null);
       }
     },
     [onInteractionChange, onOpenChange],
@@ -491,18 +499,23 @@ const ModelSelectorDropdown: React.FC<{
     );
     const boundaryWidth = Math.max(160, boundaryRight - boundaryLeft);
 
-    const mainMenuWidth = isOpenAI ? 176 : 318;
+    const mainMenuWidth = isOpenAI ? 300 : 318;
     const mainWidth = Math.min(mainMenuWidth, boundaryWidth);
     const hasSidePanel =
-      (isOpenAI && isOpenAIModelPanelOpen) ||
+      (isOpenAI && openAIAdvancedPanel !== null) ||
       (!isOpenAI && anthropicPanel !== null);
     const panelGap = hasSidePanel ? 8 : 0;
     const desiredSideWidth = isOpenAI ? 186 : 320;
     const maxSideWidth = Math.max(0, viewportWidth - 16 - mainWidth - panelGap);
+    const canPlaceSidePanel = maxSideWidth >= 180;
     const sideWidth = hasSidePanel
-      ? Math.min(desiredSideWidth, maxSideWidth)
+      ? canPlaceSidePanel
+        ? Math.min(desiredSideWidth, maxSideWidth)
+        : mainWidth
       : 0;
-    const menuWidth = mainWidth + panelGap + sideWidth;
+    const menuWidth = hasSidePanel && !canPlaceSidePanel
+      ? mainWidth
+      : mainWidth + panelGap + sideWidth;
     const desiredLeft = rect.right - mainWidth;
     const left = Math.min(
       Math.max(8, desiredLeft),
@@ -530,7 +543,7 @@ const ModelSelectorDropdown: React.FC<{
       transform: showAbove ? 'translateY(-100%)' : undefined,
       transformOrigin: showAbove ? 'bottom right' : 'top right',
     });
-  }, [anthropicPanel, isOpenAI, isOpenAIModelPanelOpen]);
+  }, [anthropicPanel, isOpenAI, openAIAdvancedPanel]);
 
   const checkColorClassName = isOpenAI
     ? isSiteDark
@@ -544,19 +557,27 @@ const ModelSelectorDropdown: React.FC<{
     ? `${selectedModelData.name} ${openAIEffort}`
     : `${selectedModelData.name} ${anthropicEffort}`;
   const menuWidthValue =
-    Number.parseInt(String(menuStyle?.width || ''), 10) || (isOpenAI ? 176 : 318);
+    Number.parseInt(String(menuStyle?.width || ''), 10) || (isOpenAI ? 300 : 318);
   const hasSidePanel =
-    (isOpenAI && isOpenAIModelPanelOpen) ||
+    (isOpenAI && openAIAdvancedPanel !== null) ||
     (!isOpenAI && anthropicPanel !== null);
   const mainPanelWidth = isOpenAI
-    ? Math.min(176, menuWidthValue)
+    ? Math.min(300, menuWidthValue)
     : Math.min(318, menuWidthValue);
+  const isPanelReplacement = hasSidePanel && menuWidthValue <= mainPanelWidth;
   const sidePanelWidth = hasSidePanel
-    ? Math.max(0, menuWidthValue - mainPanelWidth - 8)
+    ? isPanelReplacement
+      ? mainPanelWidth
+      : Math.max(0, menuWidthValue - mainPanelWidth - 8)
     : 0;
   const openAIEfforts =
-    OPENAI_EFFORTS_BY_MODEL[selectedModel] || OPENAI_EFFORTS_BY_MODEL['5.5'];
-  const openAIDefaultEffort = openAIEfforts[0] || 'Instant';
+    OPENAI_EFFORTS_BY_MODEL[selectedModel] || OPENAI_EFFORTS_BY_MODEL['5.6-sol'];
+  const openAIDefaultEffort = openAIEfforts[0] || 'Light';
+  const openAIEffortIndex = Math.max(0, openAIEfforts.indexOf(openAIEffort));
+  const openAIEffortProgress = openAIEfforts.length > 1
+    ? openAIEffortIndex / (openAIEfforts.length - 1)
+    : 0.5;
+  const isPremiumOpenAIEffort = openAIEffort === 'Ultra';
 
   useEffect(() => {
     if (!selectedModelData) return;
@@ -652,7 +673,12 @@ const ModelSelectorDropdown: React.FC<{
         {isOpenAI ? (
           <span className="flex min-w-0 max-w-[150px] items-center gap-1.5 truncate sm:max-w-[200px]">
             <span className="shrink-0">{selectedModelData.name}</span>
-            <span className={cn('min-w-0 truncate', isSiteDark ? 'text-white/[0.62]' : 'text-black/[0.58]')}>
+            <span className={cn(
+              'min-w-0 truncate',
+              openAIEffort === 'Ultra'
+                ? 'text-[#a66cff]'
+                : isSiteDark ? 'text-white/[0.62]' : 'text-black/[0.58]',
+            )}>
               {openAIEffort}
             </span>
           </span>
@@ -682,6 +708,7 @@ const ModelSelectorDropdown: React.FC<{
             <div
               className={cn(
                 'max-h-full overflow-y-auto rounded-2xl border p-1.5 shadow-[0_18px_48px_rgb(0_0_0_/_45%)]',
+                isPanelReplacement && 'hidden',
                 isOpenAI
                   ? isSiteDark
                     ? 'border-white/[0.12] bg-[#3a3a3a] text-white shadow-black/40'
@@ -695,51 +722,146 @@ const ModelSelectorDropdown: React.FC<{
             >
               {isOpenAI ? (
                 <>
-                  <div className={cn(
-                    'px-3 pb-2 pt-3 text-base font-medium',
-                    isSiteDark ? 'text-white/[0.62]' : 'text-[#6b6b6b]',
-                  )}
-                  >
-                    Intelligence
-                  </div>
-                  {openAIEfforts.map((effort) => (
-                    <button
-                      key={effort}
-                      type="button"
+                  {!isOpenAIAdvancedOpen ? (
+                    <>
+                  <div className="px-3 pb-2 pt-3">
+                    <div
                       className={cn(
-                        'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-base font-semibold transition-colors',
-                        isSiteDark ? 'hover:bg-white/[0.08]' : 'hover:bg-[#f4f4f4]',
+                        'relative grid h-9 items-center rounded-full px-1',
+                        isSiteDark ? 'bg-white/[0.12]' : 'bg-black/[0.10]',
                       )}
-                      role="option"
-                      aria-selected={effort === openAIEffort}
-                      onClick={() => {
-                        setOpenAIEffort(effort);
-                        setDropdownOpen(false);
-                      }}
+                      style={{ gridTemplateColumns: `repeat(${openAIEfforts.length}, minmax(0, 1fr))` }}
                     >
-                      <span className={cn(isSiteDark ? 'text-white/[0.78]' : 'text-black/[0.68]')}>
-                        {effort}
-                      </span>
-                      {effort === openAIEffort && (
-                        <Check className={cn('h-5 w-5 shrink-0', checkColorClassName)} />
-                      )}
-                    </button>
-                  ))}
+                      <input
+                        type="range"
+                        min={0}
+                        max={Math.max(0, openAIEfforts.length - 1)}
+                        step={1}
+                        value={openAIEffortIndex}
+                        aria-label="Response effort"
+                        aria-valuetext={openAIEffort}
+                        className="peer absolute inset-0 z-30 h-full w-full touch-none cursor-grab appearance-none opacity-0 active:cursor-grabbing"
+                        onChange={(event) => {
+                          const nextEffort = openAIEfforts[Number(event.currentTarget.value)];
+                          if (nextEffort) setOpenAIEffort(nextEffort);
+                        }}
+                      />
+                      <div
+                        className={cn(
+                          'pointer-events-none absolute left-1 top-1 h-7 rounded-full transition-[width,background,opacity] duration-200 ease-out',
+                        )}
+                        style={{
+                          width: openAIEffortIndex === 0
+                            ? '0px'
+                            : openAIEfforts.length > 1
+                              ? `calc(${openAIEffortProgress * 100}% + ${14 - openAIEffortProgress * 36}px)`
+                              : 'calc(100% - 8px)',
+                          opacity: openAIEffortIndex === 0 ? 0 : 1,
+                          background: isPremiumOpenAIEffort
+                            ? 'linear-gradient(90deg, #72a7ff 0%, #8b7dff 42%, #b45cff 100%)'
+                            : '#0a84ff',
+                        }}
+                      />
+                      <div
+                        className="pointer-events-none absolute top-1 z-20 h-7 w-7 rounded-full bg-white shadow-[0_1px_4px_rgb(0_0_0_/_28%)] transition-[left,transform] duration-150 ease-out peer-active:scale-[1.14] peer-focus-visible:scale-[1.08]"
+                        style={{
+                          left: openAIEfforts.length > 1
+                            ? `calc(${openAIEffortProgress * 100}% + ${4 - openAIEffortProgress * 36}px)`
+                            : 'calc(50% - 14px)',
+                        }}
+                      />
+                      {openAIEfforts.map((effort, index) => (
+                        <span
+                          key={effort}
+                          title={effort}
+                          aria-hidden="true"
+                          className="relative z-10 flex h-7 items-center justify-center"
+                        >
+                          <span
+                            className={cn(
+                              'h-1.5 w-1.5 rounded-full transition-colors',
+                              index <= openAIEffortIndex
+                                ? 'bg-white/45'
+                                : isSiteDark ? 'bg-white/30' : 'bg-black/30',
+                            )}
+                          />
+                        </span>
+                      ))}
+                    </div>
+                    <div className={cn(
+                      'mt-2 text-center text-xs font-medium',
+                      isPremiumOpenAIEffort
+                        ? 'text-[#9b64ff]'
+                        : isSiteDark ? 'text-white/60' : 'text-black/55',
+                    )}>
+                      {openAIEffort}
+                    </div>
+                  </div>
                   <div className={cn('mx-3 my-2 border-t', isSiteDark ? 'border-white/[0.12]' : 'border-black/10')} />
                   <button
                     type="button"
                     className={cn(
                       'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-base font-semibold transition-colors',
-                      isOpenAIModelPanelOpen
-                        ? isSiteDark ? 'bg-white/[0.10]' : 'bg-[#f4f4f4]'
-                        : isSiteDark ? 'hover:bg-white/[0.08]' : 'hover:bg-[#f4f4f4]',
+                      isSiteDark ? 'hover:bg-white/[0.08]' : 'hover:bg-[#f4f4f4]',
                     )}
-                    onClick={() => setIsOpenAIModelPanelOpen((value) => !value)}
-                    aria-expanded={isOpenAIModelPanelOpen}
+                    onClick={() => setIsOpenAIAdvancedOpen(true)}
+                    aria-expanded={false}
                   >
-                    <span>{selectedModelData.name}</span>
+                    <span className={cn(isSiteDark ? 'text-white/70' : 'text-black/65')}>Advanced</span>
                     <ChevronRight className="h-4 w-4 opacity-70" />
                   </button>
+                    </>
+                  ) : (
+                    <>
+                      {([
+                        ['model', 'Model', selectedModelData.name],
+                        ['effort', 'Effort', openAIEffort],
+                        ['speed', 'Speed', openAISpeed],
+                      ] as const).map(([panel, label, value]) => (
+                        <button
+                          key={panel}
+                          type="button"
+                          className={cn(
+                            'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors',
+                            openAIAdvancedPanel === panel
+                              ? isSiteDark ? 'bg-white/[0.10]' : 'bg-[#ececec]'
+                              : isSiteDark ? 'hover:bg-white/[0.08]' : 'hover:bg-[#f4f4f4]',
+                          )}
+                          onClick={() => setOpenAIAdvancedPanel((current) => current === panel ? null : panel)}
+                          aria-expanded={openAIAdvancedPanel === panel}
+                        >
+                          <span>{label}</span>
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className={cn(
+                              'max-w-[150px] truncate font-medium',
+                              panel === 'effort' && openAIEffort === 'Ultra'
+                                ? 'text-[#a66cff]'
+                                : isSiteDark ? 'text-white/50' : 'text-black/45',
+                            )}>
+                              {value}
+                            </span>
+                            <ChevronRight className="h-4 w-4 shrink-0 opacity-55" />
+                          </span>
+                        </button>
+                      ))}
+                      <div className={cn('mx-3 my-1.5 border-t', isSiteDark ? 'border-white/[0.12]' : 'border-black/10')} />
+                      <button
+                        type="button"
+                        className={cn(
+                          'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors',
+                          isSiteDark ? 'text-white/55 hover:bg-white/[0.08]' : 'text-black/50 hover:bg-[#f4f4f4]',
+                        )}
+                        onClick={() => {
+                          setIsOpenAIAdvancedOpen(false);
+                          setOpenAIAdvancedPanel(null);
+                        }}
+                        aria-expanded={true}
+                      >
+                        <span>Advanced</span>
+                        <ChevronDown className="h-4 w-4 rotate-180 opacity-70" />
+                      </button>
+                    </>
+                  )}
                 </>
               ) : (
                 <>
@@ -811,7 +933,7 @@ const ModelSelectorDropdown: React.FC<{
                 </>
               )}
             </div>
-            {isOpenAI && isOpenAIModelPanelOpen && (
+            {isOpenAI && openAIAdvancedPanel !== null && (
               <div
                 className={cn(
                   'max-h-full overflow-y-auto rounded-2xl border p-2 shadow-[0_18px_48px_rgb(0_0_0_/_42%)]',
@@ -821,27 +943,84 @@ const ModelSelectorDropdown: React.FC<{
                 )}
                 style={{ width: sidePanelWidth }}
               >
-                {models.map((model) => (
+                <div className={cn('px-3 pb-1 pt-1 text-sm font-medium', isSiteDark ? 'text-white/50' : 'text-black/45')}>
+                  {openAIAdvancedPanel === 'model' ? 'Model' : openAIAdvancedPanel === 'effort' ? 'Effort' : 'Speed'}
+                </div>
+                {openAIAdvancedPanel === 'model' && models.map((model) => (
+                    <button
+                      key={model.id}
+                      type="button"
+                      className={cn(
+                        'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors',
+                        isSiteDark ? 'hover:bg-white/[0.08]' : 'hover:bg-[#f4f4f4]',
+                      )}
+                      role="option"
+                      aria-selected={model.id === selectedModel}
+                      onClick={() => {
+                        const nextEfforts =
+                          OPENAI_EFFORTS_BY_MODEL[model.id] || OPENAI_EFFORTS_BY_MODEL['5.6-sol'];
+                        setOpenAIEffort(nextEfforts[0] || 'Light');
+                        onModelChange(model.id);
+                        setOpenAIAdvancedPanel(null);
+                      }}
+                    >
+                      <span className="min-w-0 truncate">{model.name}</span>
+                      {model.id === selectedModel && (
+                        <Check className={cn('h-4 w-4 shrink-0', checkColorClassName)} />
+                      )}
+                    </button>
+                ))}
+                {openAIAdvancedPanel === 'effort' && openAIEfforts.map((effort) => (
                   <button
-                    key={model.id}
+                    key={effort}
                     type="button"
                     className={cn(
-                      'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-base font-semibold transition-colors',
+                      'flex w-full items-start justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors',
                       isSiteDark ? 'hover:bg-white/[0.08]' : 'hover:bg-[#f4f4f4]',
                     )}
                     role="option"
-                    aria-selected={model.id === selectedModel}
+                    aria-selected={effort === openAIEffort}
                     onClick={() => {
-                      const nextEfforts =
-                        OPENAI_EFFORTS_BY_MODEL[model.id] || OPENAI_EFFORTS_BY_MODEL['5.5'];
-                      setOpenAIEffort(nextEfforts[0] || 'Instant');
-                      onModelChange(model.id);
-                      setDropdownOpen(false);
+                      setOpenAIEffort(effort);
+                      setOpenAIAdvancedPanel(null);
                     }}
                   >
-                    <span className="min-w-0 truncate">{model.name}</span>
-                    {model.id === selectedModel && (
-                      <Check className={cn('h-5 w-5 shrink-0', checkColorClassName)} />
+                    <span>
+                      <span className={cn('block', effort === 'Ultra' && 'text-[#a66cff]')}>{effort}</span>
+                      {effort === 'Ultra' && (
+                        <span className={cn('mt-0.5 block text-xs font-medium', isSiteDark ? 'text-white/45' : 'text-black/45')}>
+                          Consumes usage limits faster
+                        </span>
+                      )}
+                    </span>
+                    {effort === openAIEffort && (
+                      <Check className={cn('mt-0.5 h-4 w-4 shrink-0', checkColorClassName)} />
+                    )}
+                  </button>
+                ))}
+                {openAIAdvancedPanel === 'speed' && (['Standard', 'Fast'] as const).map((speed) => (
+                  <button
+                    key={speed}
+                    type="button"
+                    className={cn(
+                      'flex w-full items-start justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors',
+                      isSiteDark ? 'hover:bg-white/[0.08]' : 'hover:bg-[#f4f4f4]',
+                    )}
+                    role="option"
+                    aria-selected={speed === openAISpeed}
+                    onClick={() => {
+                      setOpenAISpeed(speed);
+                      setOpenAIAdvancedPanel(null);
+                    }}
+                  >
+                    <span>
+                      <span className="block">{speed}</span>
+                      <span className={cn('mt-0.5 block text-xs font-medium', isSiteDark ? 'text-white/45' : 'text-black/45')}>
+                        {speed === 'Standard' ? 'Default speed' : '1.5x speed, more usage'}
+                      </span>
+                    </span>
+                    {speed === openAISpeed && (
+                      <Check className={cn('mt-0.5 h-4 w-4 shrink-0', checkColorClassName)} />
                     )}
                   </button>
                 ))}
@@ -1029,7 +1208,7 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
     interfaceTheme: variant,
     modelId: selectedModelData?.id || '',
     modelName: selectedModelData?.name || '',
-    effort: variant === 'openai' ? 'Instant' : 'Low',
+    effort: variant === 'openai' ? 'Light' : 'Low',
   });
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);

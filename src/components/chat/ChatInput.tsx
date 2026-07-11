@@ -34,6 +34,21 @@ const anthropicModels: ModelOption[] = [
 
 const openAIModels: ModelOption[] = [
   {
+    id: '5.6-sol',
+    name: '5.6 Sol',
+    description: 'Flagship model for complex work',
+  },
+  {
+    id: '5.6-terra',
+    name: '5.6 Terra',
+    description: 'Balanced intelligence and speed',
+  },
+  {
+    id: '5.6-luna',
+    name: '5.6 Luna',
+    description: 'Fastest model for everyday work',
+  },
+  {
     id: '5.5',
     name: '5.5',
     description: 'Default GPT model family',
@@ -44,14 +59,14 @@ const openAIModels: ModelOption[] = [
     description: 'Strong general responses',
   },
   {
-    id: '5.3',
-    name: '5.3',
-    description: 'Fast instant answers',
+    id: '5.4-mini',
+    name: '5.4 Mini',
+    description: 'Fast, efficient responses',
   },
   {
-    id: 'o3',
-    name: 'o3',
-    description: 'Medium-effort reasoning',
+    id: '5.3-codex-spark',
+    name: '5.3 Codex Spark',
+    description: 'Fast coding assistance',
   },
 ];
 
@@ -62,7 +77,7 @@ export default function ChatInput({
   siteTheme = 'dark',
 }: Props) {
   const models = interfaceTheme === 'openai' ? openAIModels : anthropicModels;
-  const defaultModel = interfaceTheme === 'openai' ? '5.5' : 'opus';
+  const defaultModel = interfaceTheme === 'openai' ? '5.6-sol' : 'opus';
 
   return (
     <ClaudeChatInput

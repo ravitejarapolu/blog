@@ -123,12 +123,12 @@ a {
     box-shadow: var(--shadow-card);
 }
 
-[data-theme-family="anthropic"] nav {
+[data-theme-family="anthropic"] header nav {
     border-radius: 12px;
 }
 
-[data-theme-family="anthropic"] nav a,
-[data-theme-family="anthropic"] nav button,
+[data-theme-family="anthropic"] header nav a,
+[data-theme-family="anthropic"] header nav button,
 [data-theme-family="anthropic"] a.rounded-full,
 [data-theme-family="anthropic"] button.rounded-full,
 [data-theme-family="anthropic"] p.rounded-full,
@@ -173,12 +173,12 @@ a {
     color: #010920;
 }
 
-[data-theme-family="neo"] nav [data-nav-item="site-nav-chat"] {
+[data-theme-family="neo"] header nav [data-nav-item="site-nav-chat"] {
     border: 2px solid #010920;
     box-shadow: 4px 4px 0 #010920;
 }
 
-[data-theme-family="neo"][data-theme="dark"] nav [data-nav-item="site-nav-chat"] {
+[data-theme-family="neo"][data-theme="dark"] header nav [data-nav-item="site-nav-chat"] {
     border-color: #9bdc28;
     box-shadow: 4px 4px 0 #9bdc28;
 }
@@ -233,19 +233,19 @@ a {
     box-shadow: var(--shadow-card);
 }
 
-[data-theme-family="wise"] nav {
+[data-theme-family="wise"] header nav {
     max-width: min(62rem, calc(100vw - 1.5rem));
     border-radius: 9999px;
     border-color: color-mix(in oklab, var(--color-text) 12%, transparent);
     background: color-mix(in oklab, var(--color-surface) 88%, transparent);
 }
 
-[data-theme-family="wise"] nav a[aria-current="page"] {
+[data-theme-family="wise"] header nav a[aria-current="page"] {
     background: var(--color-tertiary);
     color: var(--color-text);
 }
 
-[data-theme-family="wise"] nav a.bg-primary {
+[data-theme-family="wise"] header nav a.bg-primary {
     background: var(--color-primary);
     color: #0e0f0c;
 }
@@ -351,7 +351,7 @@ a {
     box-shadow: none;
 }
 
-[data-theme-family="openai"] nav {
+[data-theme-family="openai"] header nav {
     max-width: min(58rem, calc(100vw - 1.5rem));
     background: color-mix(in oklab, var(--color-background) 86%, transparent);
     border-color: var(--color-border);
@@ -359,18 +359,18 @@ a {
     box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-text) 8%, transparent);
 }
 
-[data-theme-family="openai"] nav a,
-[data-theme-family="openai"] nav button {
+[data-theme-family="openai"] header nav a,
+[data-theme-family="openai"] header nav button {
     font-size: 0.8125rem;
     font-weight: 520;
 }
 
-[data-theme-family="openai"] nav a[aria-current="page"] {
+[data-theme-family="openai"] header nav a[aria-current="page"] {
     background: var(--color-background-offset);
     color: var(--color-text);
 }
 
-[data-theme-family="openai"] nav a.bg-primary {
+[data-theme-family="openai"] header nav a.bg-primary {
     border: 1px solid var(--color-text);
 }
 
@@ -640,19 +640,19 @@ a {
     box-shadow: var(--shadow-card);
 }
 
-[data-theme-family="wise"] nav {
+[data-theme-family="wise"] header nav {
     max-width: min(62rem, calc(100vw - 1.5rem));
     border-color: color-mix(in oklab, var(--color-text) 12%, transparent);
     border-radius: 9999px;
     background: color-mix(in oklab, var(--color-surface) 88%, transparent);
 }
 
-[data-theme-family="wise"] nav a[aria-current="page"] {
+[data-theme-family="wise"] header nav a[aria-current="page"] {
     background: var(--color-tertiary);
     color: var(--color-text);
 }
 
-[data-theme-family="wise"] nav a.bg-primary {
+[data-theme-family="wise"] header nav a.bg-primary {
     background: var(--color-primary);
     color: #0e0f0c;
 }
@@ -758,7 +758,7 @@ a {
     letter-spacing: -0.01em;
 }
 
-[data-theme-family="jake"] nav {
+[data-theme-family="jake"] header nav {
     max-width: min(42rem, calc(100vw - 1.5rem));
     border-color: var(--color-border);
     border-radius: 1.625rem;
@@ -766,32 +766,32 @@ a {
     box-shadow: var(--shadow-nav);
 }
 
-[data-theme-family="jake"] nav a,
-[data-theme-family="jake"] nav button {
+[data-theme-family="jake"] header nav a,
+[data-theme-family="jake"] header nav button {
     border-radius: 1.15rem;
 }
 
-[data-theme-family="jake"] nav a[aria-current="page"],
-[data-theme-family="jake"] nav a:hover,
-[data-theme-family="jake"] nav button:hover {
+[data-theme-family="jake"] header nav a[aria-current="page"],
+[data-theme-family="jake"] header nav a:hover,
+[data-theme-family="jake"] header nav button:hover {
     background: color-mix(in oklab, white 9%, transparent);
     color: var(--color-text);
 }
 
-[data-theme-family="jake"] nav a.bg-primary,
-[data-theme-family="jake"] nav a.bg-tertiary {
+[data-theme-family="jake"] header nav a.bg-primary,
+[data-theme-family="jake"] header nav a.bg-tertiary {
     background: var(--color-primary);
     color: #181818;
     box-shadow: none;
 }
 
-[data-theme-family="jake"] nav [role="menu"] {
+[data-theme-family="jake"] header nav [role="menu"] {
     border-radius: 1.625rem;
     background: #202020;
     box-shadow: var(--shadow-menu);
 }
 
-[data-theme-family="jake"] nav [role="menuitemradio"] {
+[data-theme-family="jake"] header nav [role="menuitemradio"] {
     border-radius: 1.1rem;
 }
 
