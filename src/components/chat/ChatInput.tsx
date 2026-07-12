@@ -12,22 +12,27 @@ interface Props {
 const anthropicModels: ModelOption[] = [
   {
     id: 'fable',
-    name: 'Ravi Fayble 5',
+    name: 'Fayble 5',
     description: 'For your toughest challenges',
   },
   {
     id: 'opus',
-    name: 'Ravi Ohpus 4.8',
+    name: 'Ohpus 4.8',
     description: 'For complex tasks',
   },
   {
+    id: 'sonnet-5',
+    name: 'Sonnet 5',
+    description: 'Latest model for everyday tasks',
+  },
+  {
     id: 'sonnet',
-    name: 'Ravi Sonnett 4.6',
+    name: 'Sonnett 4.6',
     description: 'Most efficient for everyday tasks',
   },
   {
     id: 'haiku',
-    name: 'Ravi Hyku 4.5',
+    name: 'Hyku 4.5',
     description: 'Fastest effort for quick answers',
   },
 ];
