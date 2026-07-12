@@ -159,8 +159,6 @@ export default function ChatContainer() {
         const root = chatViewportRef.current;
         if (root) {
           const height = Math.round(visualViewport?.height ?? window.innerHeight);
-          const offsetTop = Math.round(visualViewport?.offsetTop ?? 0);
-          root.style.top = `${offsetTop}px`;
           root.style.height = `${height}px`;
           root.style.minHeight = `${height}px`;
           root.style.maxHeight = `${height}px`;
@@ -184,12 +182,10 @@ export default function ChatContainer() {
 
     syncViewport();
     visualViewport?.addEventListener('resize', syncViewport);
-    visualViewport?.addEventListener('scroll', syncViewport);
     window.addEventListener('resize', syncViewport);
 
     return () => {
       visualViewport?.removeEventListener('resize', syncViewport);
-      visualViewport?.removeEventListener('scroll', syncViewport);
       window.removeEventListener('resize', syncViewport);
       if (viewportFrameRef.current !== null) {
         window.cancelAnimationFrame(viewportFrameRef.current);
@@ -199,6 +195,19 @@ export default function ChatContainer() {
       }
     };
   }, [scrollToBottom]);
+
+  useLayoutEffect(() => {
+    const canvasColor = getChatCanvasColor(interfaceTheme, siteTheme);
+    const previousRootColor = document.documentElement.style.backgroundColor;
+    const previousBodyColor = document.body.style.backgroundColor;
+    document.documentElement.style.backgroundColor = canvasColor;
+    document.body.style.backgroundColor = canvasColor;
+
+    return () => {
+      document.documentElement.style.backgroundColor = previousRootColor;
+      document.body.style.backgroundColor = previousBodyColor;
+    };
+  }, [interfaceTheme, siteTheme]);
 
   useLayoutEffect(() => {
     if ((messages.length > 0 || loading) && shouldStickToBottomRef.current) {
@@ -424,11 +433,11 @@ export default function ChatContainer() {
   const chatThemeTokens = getChatThemeTokens(interfaceTheme, siteTheme);
   const rootClassName = isOpenAI
     ? siteTheme === 'dark'
-      ? 'font-openai relative flex w-full max-w-full flex-col overflow-hidden bg-black text-white'
-      : 'font-openai relative flex w-full max-w-full flex-col overflow-hidden bg-white text-[#0d0d0d]'
-    : 'font-anthropic relative flex w-full max-w-full flex-col overflow-hidden bg-[var(--color-background)] text-[var(--color-text)]';
+      ? 'font-openai relative flex w-full max-w-full flex-col overflow-hidden overscroll-none bg-black text-white'
+      : 'font-openai relative flex w-full max-w-full flex-col overflow-hidden overscroll-none bg-white text-[#0d0d0d]'
+    : 'font-anthropic relative flex w-full max-w-full flex-col overflow-hidden overscroll-none bg-[var(--color-background)] text-[var(--color-text)]';
   const mainClassName = 'mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col overflow-hidden px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[calc(5rem+env(safe-area-inset-top))] sm:px-6';
-  const chatAreaClassName = 'relative flex min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 py-4 sm:px-5';
+  const chatAreaClassName = 'relative flex min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain [-webkit-overflow-scrolling:touch] px-1 py-4 sm:px-5';
   const chatContentClassName = 'flex min-h-full w-full flex-col gap-2';
   const sectionClassName = 'relative flex min-h-0 flex-1 flex-col overflow-hidden';
   const composerClassName = 'relative z-20 mx-auto w-full max-w-3xl min-w-0 shrink-0 pb-1';
@@ -559,6 +568,17 @@ function getChatThemeTokens(
     '--color-surface': siteTheme === 'dark' ? '#2f2e2a' : '#f6f1e8',
     '--color-border': siteTheme === 'dark' ? '#45413a' : '#ded5c8',
   } as CSSProperties;
+}
+
+function getChatCanvasColor(
+  interfaceTheme: ChatInterfaceTheme,
+  siteTheme: ChatSiteTheme,
+) {
+  if (interfaceTheme === 'openai') {
+    return siteTheme === 'dark' ? '#000000' : '#ffffff';
+  }
+
+  return siteTheme === 'dark' ? '#191816' : '#faf7f0';
 }
 
 function ClaudeBurst() {
