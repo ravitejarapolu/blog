@@ -75,6 +75,10 @@ export default function ChatContainer() {
   const [emptyStatePhrase, setEmptyStatePhrase] = useState(emptyStatePhrases[0]);
   const [interfaceTheme, setInterfaceTheme] = useState<ChatInterfaceTheme>('anthropic');
   const [interfaceThemeReady, setInterfaceThemeReady] = useState(false);
+  const [viewportMetrics, setViewportMetrics] = useState<{
+    height: number;
+    offsetTop: number;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
@@ -126,6 +130,28 @@ export default function ChatContainer() {
   useLayoutEffect(() => {
     syncInterfaceTheme();
   }, [syncInterfaceTheme]);
+
+  useLayoutEffect(() => {
+    const visualViewport = window.visualViewport;
+
+    const syncViewportHeight = () => {
+      setViewportMetrics({
+        height: Math.round(visualViewport?.height ?? window.innerHeight),
+        offsetTop: Math.round(visualViewport?.offsetTop ?? 0),
+      });
+    };
+
+    syncViewportHeight();
+    visualViewport?.addEventListener('resize', syncViewportHeight);
+    visualViewport?.addEventListener('scroll', syncViewportHeight);
+    window.addEventListener('resize', syncViewportHeight);
+
+    return () => {
+      visualViewport?.removeEventListener('resize', syncViewportHeight);
+      visualViewport?.removeEventListener('scroll', syncViewportHeight);
+      window.removeEventListener('resize', syncViewportHeight);
+    };
+  }, []);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const chatArea = chatAreaRef.current;
@@ -368,9 +394,9 @@ export default function ChatContainer() {
   const chatThemeTokens = getChatThemeTokens(interfaceTheme, siteTheme);
   const rootClassName = isOpenAI
     ? siteTheme === 'dark'
-      ? 'font-openai relative flex h-dvh min-h-dvh w-full max-w-full flex-col overflow-hidden bg-black text-white'
-      : 'font-openai relative flex h-dvh min-h-dvh w-full max-w-full flex-col overflow-hidden bg-white text-[#0d0d0d]'
-    : 'font-anthropic relative flex h-dvh min-h-dvh w-full max-w-full flex-col overflow-hidden bg-[var(--color-background)] text-[var(--color-text)]';
+      ? 'font-openai relative flex w-full max-w-full flex-col overflow-hidden bg-black text-white'
+      : 'font-openai relative flex w-full max-w-full flex-col overflow-hidden bg-white text-[#0d0d0d]'
+    : 'font-anthropic relative flex w-full max-w-full flex-col overflow-hidden bg-[var(--color-background)] text-[var(--color-text)]';
   const mainClassName = 'mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col overflow-hidden px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[calc(5rem+env(safe-area-inset-top))] sm:px-6';
   const chatAreaClassName = 'relative flex min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 py-4 sm:px-5';
   const chatContentClassName = 'flex min-h-full w-full flex-col gap-2';
@@ -393,7 +419,15 @@ export default function ChatContainer() {
     <div
       className={`${rootClassName} ${interfaceThemeReady ? 'visible' : 'invisible'}`}
       data-chat-interface={interfaceTheme}
-      style={chatThemeTokens}
+      style={{
+        ...chatThemeTokens,
+        position: 'fixed',
+        left: 0,
+        top: viewportMetrics === null ? 0 : `${viewportMetrics.offsetTop}px`,
+        height: viewportMetrics === null ? '100dvh' : `${viewportMetrics.height}px`,
+        minHeight: viewportMetrics === null ? '100dvh' : `${viewportMetrics.height}px`,
+        maxHeight: viewportMetrics === null ? '100dvh' : `${viewportMetrics.height}px`,
+      }}
     >
       <main className={mainClassName}>
         <section className={sectionClassName}>
