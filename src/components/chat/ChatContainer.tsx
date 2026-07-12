@@ -1,14 +1,12 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { ArrowDown } from 'lucide-react';
 import ChatInput from './ChatInput';
 import ChatBubble from './ChatBubble';
 import LoadingBubble from './LoadingBubble';
 import {
   THEME_CHANGE_EVENT,
-  THEME_FAMILY_CHANGE_EVENT,
-  getStoredThemeFamily,
   getStoredThemeMode,
-  setStoredThemeFamily,
 } from '../../scripts/theme';
 import type { ChatMessage, ChatInterfaceTheme } from './types';
 import type { ChatModelSelection } from '@/components/ui/claude-style-ai-input';
@@ -55,6 +53,7 @@ export default function ChatContainer() {
   const [loading, setLoading] = useState(false);
   const [emptyStatePhrase, setEmptyStatePhrase] = useState(emptyStatePhrases[0]);
   const [interfaceTheme, setInterfaceTheme] = useState<ChatInterfaceTheme>('anthropic');
+  const [interfaceThemeReady, setInterfaceThemeReady] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
@@ -62,11 +61,6 @@ export default function ChatContainer() {
   const scrollFrameRef = useRef<number | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [siteTheme, setSiteTheme] = useState<ChatSiteTheme>('dark');
-  const syncInterfaceTheme = useCallback(() => {
-    const family = getStoredThemeFamily();
-    setInterfaceTheme(family === 'openai' ? 'openai' : family === 'wise' ? 'wise' : 'anthropic');
-  }, []);
-
   const syncSiteTheme = useCallback(() => {
     const resolvedMode = getStoredThemeMode();
     if (resolvedMode === 'dark' || resolvedMode === 'light') {
@@ -92,20 +86,19 @@ export default function ChatContainer() {
     const handleAppThemeChange = () => {
       handleThemeChange();
     };
-    const handleThemeFamilyChange = () => {
-      syncInterfaceTheme();
-    };
-
     media.addEventListener('change', handleThemeChange);
     window.addEventListener(THEME_CHANGE_EVENT, handleAppThemeChange);
-    window.addEventListener(THEME_FAMILY_CHANGE_EVENT, handleThemeFamilyChange);
 
     return () => {
       media.removeEventListener('change', handleThemeChange);
       window.removeEventListener(THEME_CHANGE_EVENT, handleAppThemeChange);
-      window.removeEventListener(THEME_FAMILY_CHANGE_EVENT, handleThemeFamilyChange);
     };
-  }, [syncInterfaceTheme, syncSiteTheme]);
+  }, [syncSiteTheme]);
+
+  useLayoutEffect(() => {
+    setInterfaceTheme(Math.random() < 0.5 ? 'anthropic' : 'openai');
+    setInterfaceThemeReady(true);
+  }, []);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const chatArea = chatAreaRef.current;
@@ -169,10 +162,6 @@ export default function ChatContainer() {
   }, []);
 
   useEffect(() => {
-    syncInterfaceTheme();
-  }, [syncInterfaceTheme]);
-
-  useEffect(() => {
     setEmptyStatePhrase(getSessionEmptyStatePhrase());
   }, []);
 
@@ -183,7 +172,7 @@ export default function ChatContainer() {
   };
 
   function handleInterfaceThemeChange(nextTheme: ChatInterfaceTheme) {
-    setStoredThemeFamily(nextTheme);
+    setInterfaceTheme(nextTheme);
   }
 
   function handleSend(message: string, selection: ChatModelSelection) {
@@ -349,13 +338,11 @@ export default function ChatContainer() {
   }
 
   const isOpenAI = interfaceTheme === 'openai';
-  const isWise = interfaceTheme === 'wise';
+  const chatThemeTokens = getChatThemeTokens(interfaceTheme, siteTheme);
   const rootClassName = isOpenAI
     ? siteTheme === 'dark'
       ? 'font-openai relative flex h-dvh min-h-dvh w-full max-w-full flex-col overflow-hidden bg-black text-white'
       : 'font-openai relative flex h-dvh min-h-dvh w-full max-w-full flex-col overflow-hidden bg-white text-[#0d0d0d]'
-    : isWise
-      ? 'font-wise relative flex h-dvh min-h-dvh w-full max-w-full flex-col overflow-hidden bg-[var(--color-background)] text-[var(--color-text)]'
     : 'font-anthropic relative flex h-dvh min-h-dvh w-full max-w-full flex-col overflow-hidden bg-[var(--color-background)] text-[var(--color-text)]';
   const mainClassName = 'mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col overflow-hidden px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[calc(5rem+env(safe-area-inset-top))] sm:px-6';
   const chatAreaClassName = 'relative flex min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 py-4 sm:px-5';
@@ -368,9 +355,7 @@ export default function ChatContainer() {
       ? siteTheme === 'dark'
         ? 'rounded-full border-white/10 bg-[#2f2f2f] text-white shadow-black/35 hover:bg-[#3a3a3a]'
         : 'rounded-full border-[#d9d9e3] bg-white text-[#0d0d0d] shadow-[0_8px_22px_rgb(0_0_0_/_12%)] hover:bg-[#f4f4f4]'
-      : isWise
-        ? 'rounded-full border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] shadow-[0_12px_30px_rgb(20_20_19_/_18%)] hover:bg-[var(--color-background-offset)]'
-        : siteTheme === 'dark'
+      : siteTheme === 'dark'
           ? 'rounded-lg border-white/10 bg-[#30302E] text-[#f2f0ea] shadow-black/30 hover:bg-[#3a3936]'
           : 'rounded-lg border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] shadow-[0_8px_22px_rgb(31_25_16_/_14%)] hover:bg-[var(--color-background-offset)]',
   ].join(' ');
@@ -378,7 +363,11 @@ export default function ChatContainer() {
 
 
   return (
-    <div className={rootClassName}>
+    <div
+      className={`${rootClassName} ${interfaceThemeReady ? 'visible' : 'invisible'}`}
+      data-chat-interface={interfaceTheme}
+      style={chatThemeTokens}
+    >
       <main className={mainClassName}>
         <section className={sectionClassName}>
           <div
@@ -450,6 +439,34 @@ export default function ChatContainer() {
       </main>
     </div>
   );
+}
+
+function getChatThemeTokens(
+  interfaceTheme: ChatInterfaceTheme,
+  siteTheme: ChatSiteTheme,
+): CSSProperties {
+  if (interfaceTheme === 'openai') {
+    return {
+      '--color-primary': siteTheme === 'dark' ? '#ffffff' : '#111111',
+      '--color-text': siteTheme === 'dark' ? '#f4f4f4' : '#0d0d0d',
+      '--color-text-offset': siteTheme === 'dark' ? '#a6a6a6' : '#676767',
+      '--color-background': siteTheme === 'dark' ? '#000000' : '#ffffff',
+      '--color-background-offset': siteTheme === 'dark' ? '#111111' : '#f7f7f5',
+      '--color-surface': siteTheme === 'dark' ? '#181818' : '#ffffff',
+      '--color-border': siteTheme === 'dark' ? '#2a2a2a' : '#e5e5e0',
+    } as CSSProperties;
+  }
+
+  return {
+    '--accent-brand': '14.8 63.1% 59.6%',
+    '--color-primary': 'hsl(var(--accent-brand) / 1)',
+    '--color-text': siteTheme === 'dark' ? '#f5efe7' : '#28231d',
+    '--color-text-offset': siteTheme === 'dark' ? '#b6aea3' : '#756d63',
+    '--color-background': siteTheme === 'dark' ? '#191816' : '#faf7f0',
+    '--color-background-offset': siteTheme === 'dark' ? '#23211e' : '#f1ece3',
+    '--color-surface': siteTheme === 'dark' ? '#2f2e2a' : '#f6f1e8',
+    '--color-border': siteTheme === 'dark' ? '#45413a' : '#ded5c8',
+  } as CSSProperties;
 }
 
 function ClaudeBurst() {

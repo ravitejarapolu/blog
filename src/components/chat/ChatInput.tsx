@@ -94,7 +94,11 @@ export default function ChatInput({
       defaultModel={defaultModel}
       siteTheme={siteTheme}
       variant={interfaceTheme}
-      onVariantChange={onInterfaceThemeChange}
+      onVariantChange={(nextTheme) => {
+        if (nextTheme !== 'wise') {
+          onInterfaceThemeChange?.(nextTheme);
+        }
+      }}
     />
   );
 }
