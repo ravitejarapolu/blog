@@ -6,6 +6,7 @@ import ChatBubble from './ChatBubble';
 import LoadingBubble from './LoadingBubble';
 import {
   THEME_CHANGE_EVENT,
+  THEME_FAMILY_CHANGE_EVENT,
   getStoredThemeMode,
 } from '../../scripts/theme';
 import type { ChatMessage, ChatInterfaceTheme } from './types';
@@ -48,6 +49,26 @@ function getSessionEmptyStatePhrase() {
   return phrase;
 }
 
+function pickRandomChatInterface(): ChatInterfaceTheme {
+  if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
+    const values = new Uint32Array(1);
+    crypto.getRandomValues(values);
+    return (values[0] & 1) === 0 ? 'anthropic' : 'openai';
+  }
+
+  return Math.random() < 0.5 ? 'anthropic' : 'openai';
+}
+
+function getChatInterfaceForSiteFamily(): ChatInterfaceTheme {
+  const siteFamily = document.documentElement.dataset.themeFamily;
+
+  if (siteFamily === 'anthropic' || siteFamily === 'openai') {
+    return siteFamily;
+  }
+
+  return pickRandomChatInterface();
+}
+
 export default function ChatContainer() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -61,6 +82,10 @@ export default function ChatContainer() {
   const scrollFrameRef = useRef<number | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [siteTheme, setSiteTheme] = useState<ChatSiteTheme>('dark');
+  const syncInterfaceTheme = useCallback(() => {
+    setInterfaceTheme(getChatInterfaceForSiteFamily());
+    setInterfaceThemeReady(true);
+  }, []);
   const syncSiteTheme = useCallback(() => {
     const resolvedMode = getStoredThemeMode();
     if (resolvedMode === 'dark' || resolvedMode === 'light') {
@@ -86,19 +111,21 @@ export default function ChatContainer() {
     const handleAppThemeChange = () => {
       handleThemeChange();
     };
+    const handleThemeFamilyChange = () => syncInterfaceTheme();
     media.addEventListener('change', handleThemeChange);
     window.addEventListener(THEME_CHANGE_EVENT, handleAppThemeChange);
+    window.addEventListener(THEME_FAMILY_CHANGE_EVENT, handleThemeFamilyChange);
 
     return () => {
       media.removeEventListener('change', handleThemeChange);
       window.removeEventListener(THEME_CHANGE_EVENT, handleAppThemeChange);
+      window.removeEventListener(THEME_FAMILY_CHANGE_EVENT, handleThemeFamilyChange);
     };
-  }, [syncSiteTheme]);
+  }, [syncInterfaceTheme, syncSiteTheme]);
 
   useLayoutEffect(() => {
-    setInterfaceTheme(Math.random() < 0.5 ? 'anthropic' : 'openai');
-    setInterfaceThemeReady(true);
-  }, []);
+    syncInterfaceTheme();
+  }, [syncInterfaceTheme]);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const chatArea = chatAreaRef.current;
