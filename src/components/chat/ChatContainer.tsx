@@ -75,15 +75,15 @@ export default function ChatContainer() {
   const [emptyStatePhrase, setEmptyStatePhrase] = useState(emptyStatePhrases[0]);
   const [interfaceTheme, setInterfaceTheme] = useState<ChatInterfaceTheme>('anthropic');
   const [interfaceThemeReady, setInterfaceThemeReady] = useState(false);
-  const [viewportMetrics, setViewportMetrics] = useState<{
-    height: number;
-    offsetTop: number;
-  } | null>(null);
+  const chatViewportRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
   const shouldStickToBottomRef = useRef(true);
   const scrollFrameRef = useRef<number | null>(null);
+  const viewportFrameRef = useRef<number | null>(null);
+  const viewportSettleTimerRef = useRef<number | null>(null);
+  const isViewportChangingRef = useRef(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [siteTheme, setSiteTheme] = useState<ChatSiteTheme>('dark');
   const syncInterfaceTheme = useCallback(() => {
@@ -131,28 +131,6 @@ export default function ChatContainer() {
     syncInterfaceTheme();
   }, [syncInterfaceTheme]);
 
-  useLayoutEffect(() => {
-    const visualViewport = window.visualViewport;
-
-    const syncViewportHeight = () => {
-      setViewportMetrics({
-        height: Math.round(visualViewport?.height ?? window.innerHeight),
-        offsetTop: Math.round(visualViewport?.offsetTop ?? 0),
-      });
-    };
-
-    syncViewportHeight();
-    visualViewport?.addEventListener('resize', syncViewportHeight);
-    visualViewport?.addEventListener('scroll', syncViewportHeight);
-    window.addEventListener('resize', syncViewportHeight);
-
-    return () => {
-      visualViewport?.removeEventListener('resize', syncViewportHeight);
-      visualViewport?.removeEventListener('scroll', syncViewportHeight);
-      window.removeEventListener('resize', syncViewportHeight);
-    };
-  }, []);
-
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const chatArea = chatAreaRef.current;
     if (!chatArea) return;
@@ -169,6 +147,58 @@ export default function ChatContainer() {
       scrollFrameRef.current = null;
     });
   }, []);
+
+  useLayoutEffect(() => {
+    const visualViewport = window.visualViewport;
+
+    const syncViewport = () => {
+      isViewportChangingRef.current = true;
+
+      if (viewportFrameRef.current !== null) return;
+      viewportFrameRef.current = window.requestAnimationFrame(() => {
+        const root = chatViewportRef.current;
+        if (root) {
+          const height = Math.round(visualViewport?.height ?? window.innerHeight);
+          const offsetTop = Math.round(visualViewport?.offsetTop ?? 0);
+          root.style.top = `${offsetTop}px`;
+          root.style.height = `${height}px`;
+          root.style.minHeight = `${height}px`;
+          root.style.maxHeight = `${height}px`;
+        }
+
+        if (shouldStickToBottomRef.current) {
+          scrollToBottom('auto');
+        }
+
+        viewportFrameRef.current = null;
+      });
+
+      if (viewportSettleTimerRef.current !== null) {
+        window.clearTimeout(viewportSettleTimerRef.current);
+      }
+      viewportSettleTimerRef.current = window.setTimeout(() => {
+        isViewportChangingRef.current = false;
+        viewportSettleTimerRef.current = null;
+      }, 120);
+    };
+
+    syncViewport();
+    visualViewport?.addEventListener('resize', syncViewport);
+    visualViewport?.addEventListener('scroll', syncViewport);
+    window.addEventListener('resize', syncViewport);
+
+    return () => {
+      visualViewport?.removeEventListener('resize', syncViewport);
+      visualViewport?.removeEventListener('scroll', syncViewport);
+      window.removeEventListener('resize', syncViewport);
+      if (viewportFrameRef.current !== null) {
+        window.cancelAnimationFrame(viewportFrameRef.current);
+      }
+      if (viewportSettleTimerRef.current !== null) {
+        window.clearTimeout(viewportSettleTimerRef.current);
+      }
+    };
+  }, [scrollToBottom]);
 
   useLayoutEffect(() => {
     if ((messages.length > 0 || loading) && shouldStickToBottomRef.current) {
@@ -190,7 +220,7 @@ export default function ChatContainer() {
 
     const resizeObserver = new ResizeObserver(() => {
       if (shouldStickToBottomRef.current) {
-        scrollToBottom('smooth');
+        scrollToBottom(isViewportChangingRef.current ? 'auto' : 'smooth');
       }
     });
 
@@ -417,16 +447,17 @@ export default function ChatContainer() {
 
   return (
     <div
+      ref={chatViewportRef}
       className={`${rootClassName} ${interfaceThemeReady ? 'visible' : 'invisible'}`}
       data-chat-interface={interfaceTheme}
       style={{
         ...chatThemeTokens,
         position: 'fixed',
         left: 0,
-        top: viewportMetrics === null ? 0 : `${viewportMetrics.offsetTop}px`,
-        height: viewportMetrics === null ? '100dvh' : `${viewportMetrics.height}px`,
-        minHeight: viewportMetrics === null ? '100dvh' : `${viewportMetrics.height}px`,
-        maxHeight: viewportMetrics === null ? '100dvh' : `${viewportMetrics.height}px`,
+        top: 0,
+        height: '100dvh',
+        minHeight: '100dvh',
+        maxHeight: '100dvh',
       }}
     >
       <main className={mainClassName}>
