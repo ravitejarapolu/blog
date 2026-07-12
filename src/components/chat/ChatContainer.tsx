@@ -76,6 +76,7 @@ export default function ChatContainer() {
   const [interfaceTheme, setInterfaceTheme] = useState<ChatInterfaceTheme>('anthropic');
   const [interfaceThemeReady, setInterfaceThemeReady] = useState(false);
   const chatViewportRef = useRef<HTMLDivElement>(null);
+  const chatMainRef = useRef<HTMLElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
@@ -84,6 +85,7 @@ export default function ChatContainer() {
   const viewportFrameRef = useRef<number | null>(null);
   const viewportSettleTimerRef = useRef<number | null>(null);
   const isViewportChangingRef = useRef(false);
+  const viewportBaselineRef = useRef({ width: 0, height: 0 });
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [siteTheme, setSiteTheme] = useState<ChatSiteTheme>('dark');
   const syncInterfaceTheme = useCallback(() => {
@@ -159,11 +161,27 @@ export default function ChatContainer() {
         const root = chatViewportRef.current;
         if (root) {
           const height = Math.round(visualViewport?.height ?? window.innerHeight);
-          const offsetTop = Math.round(visualViewport?.offsetTop ?? 0);
-          root.style.top = `${offsetTop}px`;
+          const width = Math.round(visualViewport?.width ?? window.innerWidth);
+          const baseline = viewportBaselineRef.current;
+
+          if (baseline.width === 0 || Math.abs(width - baseline.width) > 40) {
+            baseline.width = width;
+            baseline.height = height;
+          } else {
+            baseline.height = Math.max(baseline.height, height);
+          }
+
+          const keyboardOpen = baseline.height - height > 120;
+          root.style.top = '0px';
           root.style.height = `${height}px`;
           root.style.minHeight = `${height}px`;
           root.style.maxHeight = `${height}px`;
+
+          const main = chatMainRef.current;
+          if (main) {
+            main.style.paddingTop = keyboardOpen ? '0.5rem' : '';
+            main.style.paddingBottom = keyboardOpen ? '0.5rem' : '';
+          }
         }
 
         if (shouldStickToBottomRef.current) {
@@ -471,7 +489,7 @@ export default function ChatContainer() {
         maxHeight: '100dvh',
       }}
     >
-      <main className={mainClassName}>
+      <main ref={chatMainRef} className={mainClassName}>
         <section className={sectionClassName}>
           <div
             ref={chatAreaRef}
