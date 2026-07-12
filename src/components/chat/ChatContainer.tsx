@@ -159,6 +159,8 @@ export default function ChatContainer() {
         const root = chatViewportRef.current;
         if (root) {
           const height = Math.round(visualViewport?.height ?? window.innerHeight);
+          const offsetTop = Math.round(visualViewport?.offsetTop ?? 0);
+          root.style.top = `${offsetTop}px`;
           root.style.height = `${height}px`;
           root.style.minHeight = `${height}px`;
           root.style.maxHeight = `${height}px`;
